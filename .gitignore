@@ -1,2 +1,15 @@
 # 公開したくないが手元では使いたい情報をここにまとめる（詳細はprivate/README.md参照）
 private/
+
+# 環境変数の実値（infra/README.md参照。.env.exampleのみコミットする）
+.env
+.env.*
+!.env.example
+
+# ローカルで取得したバックアップ・鍵ファイル（infra/backup/README相当のinfra/README.md参照）
+*.sqlite
+*.sqlite.age
+thinking-os-backup-key.txt
+*backup-key*.txt
+*age-key*.txt
+thinking-os-backups/

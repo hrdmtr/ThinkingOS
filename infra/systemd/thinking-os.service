@@ -1,0 +1,58 @@
+# Thinking OS アプリケーション本体（Fastify サーバー）用 systemd ユニット
+#
+# インストール先: /etc/systemd/system/thinking-os.service
+# （infra/provisioning/setup.sh が自動でコピーする。手動なら下記コマンドを参照）
+#
+#   sudo cp infra/systemd/thinking-os.service /etc/systemd/system/thinking-os.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable thinking-os
+#   sudo systemctl start thinking-os   # 初回デプロイ（git pull・npm ci・build）完了後に実行
+#
+# 前提（docs/vps-architecture.md 6章）:
+#   - 専用ユーザー thinkingos（useradd -r -m -s /bin/bash thinkingos）
+#   - アプリ本体: /opt/thinking-os/current/（git pull 対象。CI が上書きする）
+#   - 環境変数: /opt/thinking-os/shared/.env（パーミッション600、git管理外）
+#   - SQLite本体: /opt/thinking-os/shared/data/thinkingos.sqlite（パーミッション600、git管理外）
+#
+# 起動コマンドはモノレポの実際のワークスペース構成が固まるまでの仮置き。
+# 実装（apps/ 配下のpackage.json）が決まったら ExecStart のパス・スクリプト名を
+# 実体に合わせて調整すること（例: apps/server/dist/index.js を node で起動する等）。
+
+[Unit]
+Description=Thinking OS application server
+Documentation=https://github.com/OWNER/ThinkingOS
+# ネットワークが使える状態になってから起動する
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=thinkingos
+Group=thinkingos
+WorkingDirectory=/opt/thinking-os/current
+
+# .env はここから読み込む（ANTHROPIC_API_KEY, PORT, DATABASE_PATH 等。.env.example 参照）
+EnvironmentFile=/opt/thinking-os/shared/.env
+
+# npm run start は各ワークスペースのビルド成果物（例: dist/index.js）を起動する
+# スクリプトとして package.json 側に定義する想定。
+ExecStart=/usr/bin/npm run start --workspace=apps/server
+
+Restart=on-failure
+RestartSec=5
+
+# ログは journalctl に集約（vps-architecture.md 2章）。個別のログファイルは持たない。
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=thinking-os
+
+# --- 軽量なサンドボックス化（任意だが推奨。壊れる場合はコメントアウトして調整） ---
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+# アプリが書き込む必要があるパスのみ明示的に許可する
+ReadWritePaths=/opt/thinking-os/shared/data
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

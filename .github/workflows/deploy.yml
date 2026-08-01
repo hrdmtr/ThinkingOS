@@ -1,0 +1,72 @@
+# Thinking OS - 本番デプロイワークフロー
+#
+# docs/vps-architecture.md 5章の決定に従う:
+#   main へのマージをトリガーに、GitHub Actions から appleboy/ssh-action で
+#   VPS へSSH接続し、VPS側で `git pull` → `npm ci` → `npm run build --workspaces`
+#   → `sudo systemctl restart thinking-os` を実行する。
+#   Webhook + VPS側pullスクリプト方式は不採用（公開エンドポイントを増やさないため）。
+#
+# 前提（VPS側であらかじめ完了しておく必要がある手動作業。infra/README.md参照）:
+#   - infra/provisioning/setup.sh によるVPSの初期セットアップ完了
+#   - thinkingos ユーザーで /opt/thinking-os/current に一度だけ `git clone` 済み
+#   - /opt/thinking-os/shared/.env に本番用環境変数を設置済み
+#   - このワークフローが使うSSH鍵の公開鍵を、thinkingosユーザーの
+#     ~/.ssh/authorized_keys に登録済み（setup.sh実行時のADMIN_SSH_PUBLIC_KEY、
+#     または追加のデプロイ専用鍵）
+#
+# 必要な GitHub Secrets（リポジトリの Settings > Secrets and variables > Actions）:
+#   VPS_HOST     デプロイ先VPSのホスト名 or IPアドレス
+#   VPS_USER     SSH接続に使うユーザー名（thinkingos を想定）
+#   VPS_SSH_KEY  上記ユーザーで接続するための秘密鍵（PEM形式）
+#   VPS_PORT     （任意）SSHポート番号。未設定時は22を使う
+
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+# 同時に複数のデプロイが走らないようにする（前のデプロイの完了を待つ）
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          # 途中でコマンドが失敗したら即座に打ち切る
+          script: |
+            set -euo pipefail
+            cd /opt/thinking-os/current
+            # docs/vps-architecture.md 5章では `git pull` としているが、デプロイ用ユーザーが
+            # VPS上で直接コミットすることはない前提のため、fetch+reset --hardの方が
+            # ローカルの状態ずれ（意図しないマージコミット等）に強く安全。挙動としては
+            # 「originのmainに強制的に合わせる」という点で`git pull`の意図と同じ。
+            git fetch origin main
+            git reset --hard origin/main
+            npm ci
+            npm run build --workspaces --if-present
+            sudo /usr/bin/systemctl restart thinking-os
+
+      # デプロイ直後にサービスが実際に生きているか簡易確認する。
+      # 失敗してもデプロイ自体は完了しているため、通知目的でジョブ全体は落とさない。
+      - name: Health check
+        if: always()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script: |
+            sleep 3
+            systemctl is-active --quiet thinking-os && echo "thinking-os is active" || (echo "thinking-os is NOT active" && exit 1)

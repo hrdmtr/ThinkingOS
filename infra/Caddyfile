@@ -1,0 +1,59 @@
+# Thinking OS - Caddy設定
+#
+# インストール先: /etc/caddy/Caddyfile
+# （infra/provisioning/setup.sh が自動でコピーする。手動なら以下）
+#
+#   sudo cp infra/Caddyfile /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+#
+# このファイル中の {$VAR} はCaddyプロセスの環境変数から読み込まれる（Caddyfileの標準機能）。
+# Ubuntu の caddy パッケージが提供する systemd ユニット（caddy.service）に
+# 以下のような drop-in を追加し、値を注入すること:
+#
+#   /etc/systemd/system/caddy.service.d/override.conf:
+#     [Service]
+#     EnvironmentFile=/opt/thinking-os/shared/caddy.env
+#
+# /opt/thinking-os/shared/caddy.env に最低限必要な変数（値は絶対にリポジトリにコミットしないこと）:
+#   DOMAIN=example.com
+#   BASIC_AUTH_USER=thinkingos
+#   BASIC_AUTH_PASSWORD_HASH=<caddy hash-password の出力（bcryptハッシュ）>
+#
+# BASIC_AUTH_PASSWORD_HASH は平文パスワードではなく、以下のコマンドで生成したハッシュを使う:
+#   caddy hash-password
+#
+# 参照: docs/vps-architecture.md 3章・4章
+
+{$DOMAIN} {
+	# --- リバースプロキシ本体 ---
+	# アプリ（thinking-os.service）は 127.0.0.1:3000 でリッスンする前提（.env.example の PORT）。
+	reverse_proxy 127.0.0.1:3000
+
+	# --- Basic認証（vps-architecture.md 4章: 総当たり対策としてfail2banと併用が必須） ---
+	basic_auth {
+		{$BASIC_AUTH_USER} {$BASIC_AUTH_PASSWORD_HASH}
+	}
+
+	encode gzip zstd
+
+	# --- fail2ban検知用のアクセスログ（JSON構造化ログ） ---
+	# infra/provisioning/setup.sh がログ用ディレクトリの作成・権限設定を行う。
+	# infra/provisioning/setup.sh 内の fail2ban filter (caddy-auth.conf) は
+	# このパスの "status":401 行を検知対象にしている。パスを変更する場合は両方合わせて直すこと。
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10MB
+			roll_keep 10
+			roll_keep_for 720h
+		}
+		format json
+	}
+
+	# 基本的なセキュリティヘッダー
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}
