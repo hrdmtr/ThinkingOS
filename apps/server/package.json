@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@fastify/static": "^10.1.2",
     "@thinking-os/shared": "*",
     "better-sqlite3": "^11.5.0",
     "fastify": "^5.1.0",
