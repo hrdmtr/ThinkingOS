@@ -11,6 +11,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "postinstall": "npm run build --workspace=@thinking-os/shared --if-present",
     "build": "npm run build --workspaces --if-present",
     "dev:server": "npm run dev --workspace=apps/server",
     "dev:web": "npm run dev --workspace=apps/web",
