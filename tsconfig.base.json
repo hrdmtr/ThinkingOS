@@ -7,10 +7,6 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true,
-    "paths": {
-      "@thinking-os/shared": ["../../packages/shared/src/index.ts"],
-      "@thinking-os/shared/*": ["../../packages/shared/src/*"]
-    }
+    "resolveJsonModule": true
   }
 }
