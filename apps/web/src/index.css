@@ -1,0 +1,130 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #fafafa;
+  color: #1a1a1a;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #16171a;
+    color: #e6e6e6;
+  }
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.screen h1 {
+  font-size: 1.4rem;
+}
+
+.hint {
+  color: #888;
+}
+
+.error {
+  color: #c0392b;
+  background: rgba(192, 57, 43, 0.1);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.stats-banner {
+  background: rgba(80, 120, 200, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.start-session-button,
+.end-session-button,
+.submit-button,
+.accept-all-button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.75rem 0;
+  border: none;
+  border-radius: 8px;
+  background: #3a6df0;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.end-session-button {
+  background: #888;
+}
+
+.chat-log {
+  min-height: 200px;
+  margin-bottom: 1rem;
+}
+
+.chat-message {
+  margin-bottom: 0.75rem;
+}
+
+.chat-message__role {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: #666;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chat-input-row textarea {
+  flex: 1;
+  min-height: 3rem;
+  padding: 0.5rem;
+}
+
+.review-group {
+  margin-bottom: 1.5rem;
+}
+
+.review-item {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.review-item--reject {
+  opacity: 0.5;
+}
+
+.review-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.review-actions button.active {
+  background: #3a6df0;
+  color: white;
+}
+
+.node-type-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-right: 0.4rem;
+}
+
+.edge-endpoints {
+  font-weight: bold;
+}

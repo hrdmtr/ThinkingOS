@@ -1,3 +1,8 @@
+# Node.js
+node_modules/
+dist/
+data/
+
 # 公開したくないが手元では使いたい情報をここにまとめる（詳細はprivate/README.md参照）
 private/
 

@@ -32,6 +32,17 @@ findings for the user and the orchestrating agent to weigh.
    rather than needing everything decided before anything starts.
 4. **Cuttable scope.** What in the proposal could be deferred without weakening the ability to start
    dogfooding, and what's genuinely load-bearing and shouldn't be cut?
+5. **Task granularity.** When a task/milestone breakdown exists (yours or someone else's), check whether
+   each unit is sized right — not just whether the overall sequence is right:
+   - **Too coarse**: if this unit fails partway through, how much work gets thrown away or needs rework?
+     A unit where a mistake halfway means redoing hours of work is too big — split it so failure is
+     cheap.
+   - **Too fine**: does finishing this unit produce something worth the postmortem-style report defined
+     in `CLAUDE.md` (result, what needed human judgment, what to improve, what's still open)? If a unit
+     is too small to say anything meaningful about, it's adding reporting overhead without value — merge
+     it with adjacent work.
+   - A good boundary: partial failure is cheaply recoverable, and completion gives you one concrete
+     sentence to report.
 
 ## Output
 

@@ -14,9 +14,8 @@
 #   - 環境変数: /opt/thinking-os/shared/.env（パーミッション600、git管理外）
 #   - SQLite本体: /opt/thinking-os/shared/data/thinkingos.sqlite（パーミッション600、git管理外）
 #
-# 起動コマンドはモノレポの実際のワークスペース構成が固まるまでの仮置き。
-# 実装（apps/ 配下のpackage.json）が決まったら ExecStart のパス・スクリプト名を
-# 実体に合わせて調整すること（例: apps/server/dist/index.js を node で起動する等）。
+# apps/server/package.json の "start": "node dist/index.js" と一致する構成
+# （ExecStartは `npm run start --workspace=apps/server` を実行する）。
 
 [Unit]
 Description=Thinking OS application server
