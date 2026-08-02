@@ -1,33 +1,107 @@
-import { useEffect, useState } from "react";
-import type { Node, Stats } from "@thinking-os/shared";
-import { fetchRecentNodes, fetchUnresolvedNodes } from "../api.js";
+import { useCallback, useEffect, useState } from "react";
+import type { Node, NodeType, Stats } from "@thinking-os/shared";
+import { NODE_TYPES } from "@thinking-os/shared";
+import { editNode, fetchRecentNodes, fetchUnresolvedNodes } from "../api.js";
 
 type Props = {
   latestStats: Stats | null;
   onStartSession: () => void;
 };
 
+type NodeItemProps = {
+  node: Node;
+  onSaved: () => void;
+};
+
+/**
+ * 確定済みノード1件の表示・編集。ドッグフーディング初日に見つかった課題
+ * （確定後に誤分類を直す手段がない）への対応。AIが再分類するのではなく、
+ * 人間が自分の過去の確定判断を訂正する操作なので「AIは名付けをしない」原則には抵触しない。
+ * 保存後はサーバーから最新の一覧を取り直す（ローカルでの手動マージはしない。
+ * type変更で他の一覧への出入りが起きるため、その方が単純で確実）。
+ */
+function NodeItem({ node, onSaved }: NodeItemProps) {
+  const [editing, setEditing] = useState(false);
+  const [type, setType] = useState<NodeType>(node.type);
+  const [content, setContent] = useState(node.content);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!editing) {
+    return (
+      <li>
+        <span className="node-type-badge">{node.type}</span> {node.content}{" "}
+        <button className="edit-node-button" onClick={() => setEditing(true)}>
+          編集
+        </button>
+      </li>
+    );
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setError(null);
+    try {
+      await editNode(node.id, type, content);
+      setEditing(false);
+      onSaved();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleCancel() {
+    setType(node.type);
+    setContent(node.content);
+    setError(null);
+    setEditing(false);
+  }
+
+  return (
+    <li className="node-item-editing">
+      <select value={type} onChange={(e) => setType(e.target.value as NodeType)}>
+        {NODE_TYPES.map((t) => (
+          <option key={t} value={t}>
+            {t}
+          </option>
+        ))}
+      </select>
+      <textarea value={content} onChange={(e) => setContent(e.target.value)} />
+      <div className="review-actions">
+        <button onClick={() => void handleSave()} disabled={saving}>
+          保存
+        </button>
+        <button onClick={handleCancel} disabled={saving}>
+          キャンセル
+        </button>
+      </div>
+      {error && <p className="error">{error}</p>}
+    </li>
+  );
+}
+
 /**
  * 起動時のホーム画面 (thinking-os-plan-v0.2.docx セクション6「表示」)。
  * 「今日の問い」はAIによる問いかけ生成が必要でまだ未実装（docs/step5-build-plan.mdでは
- * バッチ抽出と合わせて後続で実装する想定）。ここでは確定済みデータの表示のみ。
+ * バッチ抽出と合わせて後続で実装する想定）。
  */
 export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
   const [recentNodes, setRecentNodes] = useState<Node[]>([]);
   const [unresolvedNodes, setUnresolvedNodes] = useState<Node[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const reload = useCallback(async () => {
+    const [recent, unresolved] = await Promise.all([fetchRecentNodes(), fetchUnresolvedNodes()]);
+    setRecentNodes(recent);
+    setUnresolvedNodes(unresolved);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
-    void (async () => {
-      const [recent, unresolved] = await Promise.all([
-        fetchRecentNodes(),
-        fetchUnresolvedNodes(),
-      ]);
-      setRecentNodes(recent);
-      setUnresolvedNodes(unresolved);
-      setLoading(false);
-    })();
-  }, [latestStats]);
+    void reload();
+  }, [reload, latestStats]);
 
   const ideaNodes = recentNodes.filter((n) => n.type === "アイデア");
 
@@ -60,7 +134,7 @@ export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
             ) : (
               <ul>
                 {unresolvedNodes.map((n) => (
-                  <li key={n.id}>{n.content}</li>
+                  <NodeItem key={n.id} node={n} onSaved={() => void reload()} />
                 ))}
               </ul>
             )}
@@ -73,9 +147,7 @@ export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
             ) : (
               <ul>
                 {recentNodes.map((n) => (
-                  <li key={n.id}>
-                    <span className="node-type-badge">{n.type}</span> {n.content}
-                  </li>
+                  <NodeItem key={n.id} node={n} onSaved={() => void reload()} />
                 ))}
               </ul>
             )}
@@ -88,7 +160,7 @@ export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
             ) : (
               <ul>
                 {ideaNodes.map((n) => (
-                  <li key={n.id}>{n.content}</li>
+                  <NodeItem key={n.id} node={n} onSaved={() => void reload()} />
                 ))}
               </ul>
             )}

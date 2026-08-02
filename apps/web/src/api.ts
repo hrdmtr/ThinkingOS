@@ -2,6 +2,7 @@ import type {
   Edge,
   ExtractionResult,
   Node,
+  NodeType,
   Stats,
   SubmitReviewRequest,
 } from "@thinking-os/shared";
@@ -79,6 +80,16 @@ export async function fetchRecentNodes(): Promise<Node[]> {
 
 export async function fetchUnresolvedNodes(): Promise<Node[]> {
   const res = await fetch("/api/nodes/unresolved");
+  return json(res);
+}
+
+/** 確定済みノードの分類・内容を後から訂正する。 */
+export async function editNode(id: number, type: NodeType, content: string): Promise<Node> {
+  const res = await fetch(`/api/nodes/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type, content }),
+  });
   return json(res);
 }
 

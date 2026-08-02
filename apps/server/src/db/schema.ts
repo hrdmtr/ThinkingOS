@@ -30,8 +30,21 @@ CREATE TABLE IF NOT EXISTS edges (
   discovered_at TEXT NOT NULL
 );
 
+-- 確定済みノードを後から編集した際の軽量な変更ログ（PDMレビュー: 統計の遡及変化を
+-- 「禁止」ではなく「痕跡を残す」ことで扱う方針）。閲覧UIはMVP対象外、DBに残すのみ。
+CREATE TABLE IF NOT EXISTS node_edits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  node_id INTEGER NOT NULL REFERENCES nodes(id),
+  from_type TEXT NOT NULL,
+  to_type TEXT NOT NULL,
+  from_content TEXT NOT NULL,
+  to_content TEXT NOT NULL,
+  edited_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_nodes_session_id ON nodes(session_id);
 CREATE INDEX IF NOT EXISTS idx_nodes_type ON nodes(type);
 CREATE INDEX IF NOT EXISTS idx_edges_source ON edges(source_node_id);
 CREATE INDEX IF NOT EXISTS idx_edges_target ON edges(target_node_id);
+CREATE INDEX IF NOT EXISTS idx_node_edits_node_id ON node_edits(node_id);
 `;
