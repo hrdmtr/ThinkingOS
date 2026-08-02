@@ -128,3 +128,29 @@ body {
 .edge-endpoints {
   font-weight: bold;
 }
+
+.edit-node-button {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.node-item-editing {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.node-item-editing select {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.node-item-editing textarea {
+  width: 100%;
+  min-height: 3rem;
+}

@@ -1,6 +1,9 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { NodeTypeSchema } from "@thinking-os/shared";
 import {
+  editNode,
+  getNodeById,
   getStats,
   listRecentNodes,
   listUnresolvedNodes,
@@ -8,6 +11,15 @@ import {
 
 const StatsQuerySchema = z.object({
   sessionId: z.coerce.number().int().positive(),
+});
+
+const NodeIdParamsSchema = z.object({
+  id: z.coerce.number().int().positive(),
+});
+
+const EditNodeRequestSchema = z.object({
+  type: NodeTypeSchema,
+  content: z.string().min(1),
 });
 
 /**
@@ -30,5 +42,22 @@ export async function knowledgeRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/api/nodes/unresolved", async () => {
     return listUnresolvedNodes();
+  });
+
+  // 確定済みノードの分類・内容を後から訂正する（ドッグフーディングで発見した課題への対応）。
+  // AIの再分類ではなく、人間が自分の過去の確定判断を訂正する操作。編集の痕跡はnode_editsに残す。
+  app.patch("/api/nodes/:id", async (request, reply) => {
+    const params = NodeIdParamsSchema.safeParse(request.params);
+    if (!params.success) {
+      return reply.status(400).send({ error: params.error.flatten() });
+    }
+    const body = EditNodeRequestSchema.safeParse(request.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: body.error.flatten() });
+    }
+    if (!getNodeById(params.data.id)) {
+      return reply.status(404).send({ error: "node not found" });
+    }
+    return editNode(params.data.id, body.data.type, body.data.content);
   });
 }

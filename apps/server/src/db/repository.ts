@@ -70,6 +70,40 @@ function rowToNode(row: {
   };
 }
 
+export function getNodeById(id: number): Node | undefined {
+  const row = getDb().prepare("SELECT * FROM nodes WHERE id = ?").get(id) as
+    | Parameters<typeof rowToNode>[0]
+    | undefined;
+  return row ? rowToNode(row) : undefined;
+}
+
+/**
+ * 確定済みノードの分類・内容を後から訂正する（ドッグフーディング初日に発見した課題への対応。
+ * PDMレビュー：統計の遡及変化は「禁止」ではなく「変更の痕跡を残す」方針で扱う）。
+ * AIが再分類するのではなく、あくまで人間が過去の自分の確定判断を訂正する操作であり、
+ * 「AIは名付けをしない」原則には抵触しない。
+ */
+export function editNode(id: number, newType: NodeType, newContent: string): Node {
+  const db = getDb();
+  const applyEdit = db.transaction(() => {
+    const current = getNodeById(id);
+    if (!current) {
+      throw new Error(`node ${id} not found`);
+    }
+    db.prepare(
+      "INSERT INTO node_edits (node_id, from_type, to_type, from_content, to_content, edited_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).run(id, current.type, newType, current.content, newContent, new Date().toISOString());
+    db.prepare("UPDATE nodes SET type = ?, content = ? WHERE id = ?").run(newType, newContent, id);
+  });
+  applyEdit();
+
+  const updated = getNodeById(id);
+  if (!updated) {
+    throw new Error(`node ${id} not found after edit`);
+  }
+  return updated;
+}
+
 export function listRecentNodes(limit = 20): Node[] {
   const rows = getDb()
     .prepare("SELECT * FROM nodes ORDER BY created_at DESC LIMIT ?")
