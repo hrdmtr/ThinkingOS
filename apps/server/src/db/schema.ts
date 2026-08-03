@@ -13,9 +13,12 @@ CREATE TABLE IF NOT EXISTS sessions (
   transcript TEXT NOT NULL DEFAULT ''
 );
 
+-- typeの許容値はCHECK制約ではなくアプリ層のzod (NodeTypeSchema) だけで検証する。
+-- CHECK制約にすると、ノード分類の語彙を変更するたびにSQLiteのテーブル再作成が
+-- 必要になり移行コストが高い（実際に「根拠」→「事実」への変更で発生した問題）。
 CREATE TABLE IF NOT EXISTS nodes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL CHECK (type IN ('アイデア','仮説','根拠','判断','未解決事項','タスク')),
+  type TEXT NOT NULL,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL,
   session_id INTEGER NOT NULL REFERENCES sessions(id)
