@@ -67,6 +67,7 @@ export function App() {
           onDone={() => void handleReviewDone(screen.extraction.sessionId)}
         />
       )}
+      <p className="version-footer">v{__APP_COMMIT__}</p>
     </div>
   );
 }
