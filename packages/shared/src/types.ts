@@ -128,3 +128,14 @@ export const StatsSchema = z.object({
   cumulativeRelationCount: z.number().int().nonnegative(),
 });
 export type Stats = z.infer<typeof StatsSchema>;
+
+/**
+ * 週次の命題数集計。docs/step4-dogfooding.md「週次の集計」（撤退・継続基準の判断材料）。
+ * weekLabelはISO週番号（例："2026-31"）、weekStartDateはその週で最初に命題が生まれた日の目安。
+ */
+export const WeeklyStatSchema = z.object({
+  weekLabel: z.string(),
+  weekStartDate: z.string(),
+  propositionCount: z.number().int().nonnegative(),
+});
+export type WeeklyStat = z.infer<typeof WeeklyStatSchema>;

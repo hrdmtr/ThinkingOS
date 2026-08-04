@@ -5,6 +5,7 @@ import {
   editNode,
   getNodeById,
   getStats,
+  getWeeklyStats,
   listRecentNodes,
   listUnresolvedNodes,
 } from "../db/repository.js";
@@ -34,6 +35,11 @@ export async function knowledgeRoutes(app: FastifyInstance): Promise<void> {
       return reply.status(400).send({ error: parsed.error.flatten() });
     }
     return getStats(parsed.data.sessionId);
+  });
+
+  // 撤退・継続基準（docs/step4-dogfooding.md 4章）の判断材料としての週次命題数推移。
+  app.get("/api/stats/weekly", async () => {
+    return getWeeklyStats();
   });
 
   app.get("/api/nodes/recent", async () => {
