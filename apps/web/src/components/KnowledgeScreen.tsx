@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Node, NodeType, Stats } from "@thinking-os/shared";
+import type { Node, NodeType, Stats, WeeklyStat } from "@thinking-os/shared";
 import { NODE_TYPES } from "@thinking-os/shared";
-import { editNode, fetchRecentNodes, fetchUnresolvedNodes } from "../api.js";
+import { editNode, fetchRecentNodes, fetchUnresolvedNodes, fetchWeeklyStats } from "../api.js";
 
 type Props = {
   latestStats: Stats | null;
@@ -90,12 +90,18 @@ function NodeItem({ node, onSaved }: NodeItemProps) {
 export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
   const [recentNodes, setRecentNodes] = useState<Node[]>([]);
   const [unresolvedNodes, setUnresolvedNodes] = useState<Node[]>([]);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStat[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    const [recent, unresolved] = await Promise.all([fetchRecentNodes(), fetchUnresolvedNodes()]);
+    const [recent, unresolved, weekly] = await Promise.all([
+      fetchRecentNodes(),
+      fetchUnresolvedNodes(),
+      fetchWeeklyStats(),
+    ]);
     setRecentNodes(recent);
     setUnresolvedNodes(unresolved);
+    setWeeklyStats(weekly);
     setLoading(false);
   }, []);
 
@@ -127,6 +133,21 @@ export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
         <p>読み込み中...</p>
       ) : (
         <>
+          <section>
+            <h2>週次の命題数</h2>
+            {weeklyStats.length === 0 ? (
+              <p className="hint">まだありません。</p>
+            ) : (
+              <ul className="weekly-stats-list">
+                {weeklyStats.map((w) => (
+                  <li key={w.weekLabel}>
+                    {w.weekStartDate}の週：{w.propositionCount}件
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section>
             <h2>未解決事項</h2>
             {unresolvedNodes.length === 0 ? (

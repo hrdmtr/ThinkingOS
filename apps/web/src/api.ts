@@ -5,6 +5,7 @@ import type {
   NodeType,
   Stats,
   SubmitReviewRequest,
+  WeeklyStat,
 } from "@thinking-os/shared";
 
 async function json<T>(response: Response): Promise<T> {
@@ -70,6 +71,11 @@ export async function submitReview(
 
 export async function fetchStats(sessionId: number): Promise<Stats> {
   const res = await fetch(`/api/stats?sessionId=${sessionId}`);
+  return json(res);
+}
+
+export async function fetchWeeklyStats(): Promise<WeeklyStat[]> {
+  const res = await fetch("/api/stats/weekly");
   return json(res);
 }
 

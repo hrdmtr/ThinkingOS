@@ -1,4 +1,4 @@
-import type { Edge, Node, NodeType, Stats } from "@thinking-os/shared";
+import type { Edge, Node, NodeType, Stats, WeeklyStat } from "@thinking-os/shared";
 import { PROPOSITION_NODE_TYPES } from "@thinking-os/shared";
 import { getDb } from "./index.js";
 
@@ -174,4 +174,38 @@ export function getStats(sessionId: number): Stats {
     cumulativePropositionCount: cumulativeCount.count,
     cumulativeRelationCount: relationCount.count,
   };
+}
+
+/**
+ * 週次の命題数集計 (docs/step4-dogfooding.md「週次の集計」)。
+ * 撤退・継続基準（「命題数が2週連続で明確に減少している」等）の判断材料として使う。
+ * 週の区切りはSQLiteのISO週番号（%Y-%W、月曜始まり）でグルーピングする。
+ * 直近weeksBack件を古い週→新しい週の順で返す（推移が見やすいように）。
+ */
+export function getWeeklyStats(weeksBack = 6): WeeklyStat[] {
+  const propositionPlaceholders = PROPOSITION_NODE_TYPES.map(() => "?").join(", ");
+  const rows = getDb()
+    .prepare(
+      `SELECT strftime('%Y-%W', created_at) AS weekLabel,
+              MIN(date(created_at)) AS weekStartDate,
+              COUNT(*) AS count
+       FROM nodes
+       WHERE type IN (${propositionPlaceholders})
+       GROUP BY weekLabel
+       ORDER BY weekLabel DESC
+       LIMIT ?`,
+    )
+    .all(...PROPOSITION_NODE_TYPES, weeksBack) as {
+    weekLabel: string;
+    weekStartDate: string;
+    count: number;
+  }[];
+
+  return rows
+    .map((r) => ({
+      weekLabel: r.weekLabel,
+      weekStartDate: r.weekStartDate,
+      propositionCount: r.count,
+    }))
+    .reverse();
 }
