@@ -69,6 +69,13 @@ body {
   margin-bottom: 1rem;
 }
 
+.ending-indicator {
+  text-align: center;
+  color: #3a6df0;
+  font-weight: bold;
+  padding: 0.5rem;
+}
+
 .chat-message {
   margin-bottom: 0.75rem;
 }

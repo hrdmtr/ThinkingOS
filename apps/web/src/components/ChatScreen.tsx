@@ -4,6 +4,7 @@ import { streamChat } from "../api.js";
 
 type Props = {
   sessionId: number;
+  ending: boolean;
   onEndSession: (transcript: string) => void;
 };
 
@@ -13,7 +14,7 @@ function formatTranscript(messages: ChatMessage[]): string {
     .join("\n\n");
 }
 
-export function ChatScreen({ sessionId, onEndSession }: Props) {
+export function ChatScreen({ sessionId, ending, onEndSession }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -66,6 +67,11 @@ export function ChatScreen({ sessionId, onEndSession }: Props) {
           </div>
         ))}
       </div>
+      {ending && (
+        <p className="ending-indicator" role="status">
+          壁打ちを分析中...少し待ってください
+        </p>
+      )}
       <div className="chat-input-row">
         <textarea
           value={input}
@@ -77,18 +83,18 @@ export function ChatScreen({ sessionId, onEndSession }: Props) {
             }
           }}
           placeholder="ここに入力（Enterで送信、Shift+Enterで改行）"
-          disabled={sending}
+          disabled={sending || ending}
         />
-        <button onClick={() => void handleSend()} disabled={sending || !input.trim()}>
+        <button onClick={() => void handleSend()} disabled={sending || ending || !input.trim()}>
           送信
         </button>
       </div>
       <button
         className="end-session-button"
         onClick={handleEnd}
-        disabled={messages.length === 0 || sending}
+        disabled={messages.length === 0 || sending || ending}
       >
-        壁打ちを終える
+        {ending ? "分析中..." : "壁打ちを終える"}
       </button>
     </div>
   );

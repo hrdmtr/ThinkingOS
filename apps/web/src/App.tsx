@@ -14,6 +14,10 @@ export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "knowledge" });
   const [latestStats, setLatestStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // 「壁打ちを終える」から抽出結果が返るまでの間、無反応に見えて不安になるという
+  // ドッグフーディングでのフィードバックへの対応。ChatScreenの会話状態は保ったまま
+  // (画面遷移させない)、ローディング表示だけ出す。
+  const [ending, setEnding] = useState(false);
 
   async function handleStartSession() {
     setError(null);
@@ -27,11 +31,14 @@ export function App() {
 
   async function handleEndSession(sessionId: number, transcript: string) {
     setError(null);
+    setEnding(true);
     try {
       const extraction = await endSession(sessionId, transcript);
       setScreen({ name: "review", extraction });
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setEnding(false);
     }
   }
 
@@ -50,6 +57,7 @@ export function App() {
       {screen.name === "chat" && (
         <ChatScreen
           sessionId={screen.sessionId}
+          ending={ending}
           onEndSession={(transcript) => void handleEndSession(screen.sessionId, transcript)}
         />
       )}
