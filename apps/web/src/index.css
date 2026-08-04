@@ -26,6 +26,13 @@ body {
   font-size: 1.4rem;
 }
 
+.version-footer {
+  text-align: center;
+  color: #aaa;
+  font-size: 0.7rem;
+  margin-top: 2rem;
+}
+
 .hint {
   color: #888;
 }
