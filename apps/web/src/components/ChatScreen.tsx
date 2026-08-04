@@ -1,10 +1,12 @@
 import { useState } from "react";
+import type { SessionSummary } from "@thinking-os/shared";
 import type { ChatMessage } from "../api.js";
 import { streamChat } from "../api.js";
 
 type Props = {
   sessionId: number;
   ending: boolean;
+  continuedFrom?: SessionSummary;
   onEndSession: (transcript: string) => void;
 };
 
@@ -14,10 +16,12 @@ function formatTranscript(messages: ChatMessage[]): string {
     .join("\n\n");
 }
 
-export function ChatScreen({ sessionId, ending, onEndSession }: Props) {
+export function ChatScreen({ sessionId, ending, continuedFrom, onEndSession }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  // 前回の会話は既定で折りたたんでおく（今回の会話に集中できるように）。
+  const [previousExpanded, setPreviousExpanded] = useState(false);
 
   async function handleSend() {
     const text = input.trim();
@@ -56,6 +60,17 @@ export function ChatScreen({ sessionId, ending, onEndSession }: Props) {
   return (
     <div className="screen chat-screen">
       <h1>壁打ち</h1>
+      {continuedFrom && (
+        <div className="previous-session">
+          <button
+            className="previous-session-toggle"
+            onClick={() => setPreviousExpanded((v) => !v)}
+          >
+            {previousExpanded ? "▼" : "▶"} 前回の会話（続きとして今回の壁打ちが始まっています）
+          </button>
+          {previousExpanded && <p className="previous-session-transcript">{continuedFrom.transcript}</p>}
+        </div>
+      )}
       <div className="chat-log">
         {messages.length === 0 && (
           <p className="hint">思っていることを、いつも通り話しかけてください。</p>

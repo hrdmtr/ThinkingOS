@@ -49,6 +49,23 @@ function migrateNodesTableIfNeeded(db: Database.Database): void {
   }
 }
 
+/**
+ * 既存のsessionsテーブルにcontinued_from_session_idカラムがなければ追加する。
+ * CHECK制約の移行と違い単純なカラム追加のため、ALTER TABLE ADD COLUMNで足りる
+ * （テーブルの作り替えは不要）。
+ */
+function migrateSessionsTableIfNeeded(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[];
+  if (columns.length === 0) return; // テーブルが存在しない（新規）
+
+  const hasColumn = columns.some((c) => c.name === "continued_from_session_id");
+  if (!hasColumn) {
+    db.exec(
+      "ALTER TABLE sessions ADD COLUMN continued_from_session_id INTEGER REFERENCES sessions(id)",
+    );
+  }
+}
+
 export function getDb(): Database.Database {
   if (db) return db;
 
@@ -59,6 +76,7 @@ export function getDb(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
   migrateNodesTableIfNeeded(db);
+  migrateSessionsTableIfNeeded(db);
   db.exec(SCHEMA_SQL);
 
   return db;

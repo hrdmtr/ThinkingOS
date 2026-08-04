@@ -1,12 +1,26 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Node, NodeType, Stats, WeeklyStat } from "@thinking-os/shared";
+import type { Node, NodeType, SessionSummary, Stats, WeeklyStat } from "@thinking-os/shared";
 import { NODE_TYPES } from "@thinking-os/shared";
-import { editNode, fetchRecentNodes, fetchUnresolvedNodes, fetchWeeklyStats } from "../api.js";
+import {
+  editNode,
+  fetchRecentNodes,
+  fetchRecentSessions,
+  fetchUnresolvedNodes,
+  fetchWeeklyStats,
+} from "../api.js";
 
 type Props = {
   latestStats: Stats | null;
   onStartSession: () => void;
+  onContinueSession: (session: SessionSummary) => void;
 };
+
+const PREVIEW_LENGTH = 60;
+
+function previewOf(transcript: string): string {
+  const trimmed = transcript.trim();
+  return trimmed.length > PREVIEW_LENGTH ? `${trimmed.slice(0, PREVIEW_LENGTH)}…` : trimmed;
+}
 
 type NodeItemProps = {
   node: Node;
@@ -87,21 +101,24 @@ function NodeItem({ node, onSaved }: NodeItemProps) {
  * 「今日の問い」はAIによる問いかけ生成が必要でまだ未実装（docs/step5-build-plan.mdでは
  * バッチ抽出と合わせて後続で実装する想定）。
  */
-export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
+export function KnowledgeScreen({ latestStats, onStartSession, onContinueSession }: Props) {
   const [recentNodes, setRecentNodes] = useState<Node[]>([]);
   const [unresolvedNodes, setUnresolvedNodes] = useState<Node[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStat[]>([]);
+  const [recentSessions, setRecentSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
-    const [recent, unresolved, weekly] = await Promise.all([
+    const [recent, unresolved, weekly, sessions] = await Promise.all([
       fetchRecentNodes(),
       fetchUnresolvedNodes(),
       fetchWeeklyStats(),
+      fetchRecentSessions(),
     ]);
     setRecentNodes(recent);
     setUnresolvedNodes(unresolved);
     setWeeklyStats(weekly);
+    setRecentSessions(sessions);
     setLoading(false);
   }, []);
 
@@ -133,6 +150,24 @@ export function KnowledgeScreen({ latestStats, onStartSession }: Props) {
         <p>読み込み中...</p>
       ) : (
         <>
+          <section>
+            <h2>前回までの壁打ちから続ける</h2>
+            {recentSessions.length === 0 ? (
+              <p className="hint">まだありません。</p>
+            ) : (
+              <ul className="session-list">
+                {recentSessions.map((s) => (
+                  <li key={s.id} className="session-list-item">
+                    <span className="session-preview">{previewOf(s.transcript)}</span>
+                    <button className="continue-session-button" onClick={() => onContinueSession(s)}>
+                      続ける
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section>
             <h2>週次の命題数</h2>
             {weeklyStats.length === 0 ? (

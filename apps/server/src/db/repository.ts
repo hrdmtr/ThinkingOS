@@ -1,11 +1,11 @@
-import type { Edge, Node, NodeType, Stats, WeeklyStat } from "@thinking-os/shared";
+import type { Edge, Node, NodeType, SessionSummary, Stats, WeeklyStat } from "@thinking-os/shared";
 import { PROPOSITION_NODE_TYPES } from "@thinking-os/shared";
 import { getDb } from "./index.js";
 
-export function createSession(): number {
+export function createSession(continuedFromSessionId?: number): number {
   const result = getDb()
-    .prepare("INSERT INTO sessions (started_at) VALUES (?)")
-    .run(new Date().toISOString());
+    .prepare("INSERT INTO sessions (started_at, continued_from_session_id) VALUES (?, ?)")
+    .run(new Date().toISOString(), continuedFromSessionId ?? null);
   return Number(result.lastInsertRowid);
 }
 
@@ -20,6 +20,46 @@ export function getTranscript(sessionId: number): string | undefined {
     .prepare("SELECT transcript FROM sessions WHERE id = ?")
     .get(sessionId) as { transcript: string } | undefined;
   return row?.transcript;
+}
+
+/**
+ * このセッションが継続元として指定した、過去のセッションのtranscriptを返す
+ * （継続元を指定していなければundefined）。壁打ち中のAIチャットに文脈として渡す。
+ */
+export function getPreviousTranscript(sessionId: number): string | undefined {
+  const row = getDb()
+    .prepare(
+      `SELECT s2.transcript AS transcript
+       FROM sessions s1
+       JOIN sessions s2 ON s2.id = s1.continued_from_session_id
+       WHERE s1.id = ?`,
+    )
+    .get(sessionId) as { transcript: string } | undefined;
+  return row?.transcript;
+}
+
+/**
+ * 「前回の話題をもっと深掘りしたい」「後で新たな気づきがあった」ときに、
+ * 過去のどのセッションからでも継続を選べるようにするための一覧
+ * （ドッグフーディングでのフィードバックへの対応）。終了済みのセッションのみ対象。
+ */
+export function listRecentSessions(limit = 5): SessionSummary[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT id, started_at, ended_at, transcript
+       FROM sessions
+       WHERE ended_at IS NOT NULL
+       ORDER BY started_at DESC
+       LIMIT ?`,
+    )
+    .all(limit) as { id: number; started_at: string; ended_at: string; transcript: string }[];
+
+  return rows.map((r) => ({
+    id: r.id,
+    startedAt: r.started_at,
+    endedAt: r.ended_at,
+    transcript: r.transcript,
+  }));
 }
 
 /**
