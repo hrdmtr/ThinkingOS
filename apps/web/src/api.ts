@@ -31,8 +31,7 @@ export async function createSession(
 /** 継続元として選べる、終了済みセッションの一覧。 */
 export async function fetchRecentSessions(): Promise<SessionSummary[]> {
   const res = await fetch("/api/sessions/recent");
-  const { sessions } = await json<{ sessions: SessionSummary[] }>(res);
-  return sessions;
+  return json(res);
 }
 
 export type ChatMessage = { role: "user" | "assistant"; content: string };

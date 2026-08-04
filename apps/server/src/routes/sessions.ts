@@ -47,8 +47,9 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
 
   // 「前回の話題をもっと深掘りしたい」というドッグフーディングでのフィードバックへの対応。
   // 継続元として選べる、終了済みセッションの一覧。
+  // 他の一覧系エンドポイント（/api/nodes/recent等）と合わせ、配列を直接返す。
   app.get("/api/sessions/recent", async () => {
-    return { sessions: listRecentSessions() };
+    return listRecentSessions();
   });
 
   app.post("/api/sessions/:id/chat", async (request, reply) => {
