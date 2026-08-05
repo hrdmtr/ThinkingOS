@@ -16,8 +16,13 @@ const nodeCandidateJsonSchema = {
       items: { type: "string" as const },
       description: "typeとは直交するタグ候補。「気づき」に該当する場合はそれを含める。該当しなければ空配列",
     },
+    sourceQuote: {
+      type: "string" as const,
+      description:
+        "contentの根拠になった会話ログ中の該当箇所の短い引用。レビュー画面で元の文脈と照らし合わせて確認するための一時情報",
+    },
   },
-  required: ["tempId", "type", "content", "tagSuggestions"],
+  required: ["tempId", "type", "content", "tagSuggestions", "sourceQuote"],
 };
 
 const edgeCandidateJsonSchema = {
@@ -95,12 +100,13 @@ export async function extractFromTranscript(
     edgeCandidates?: unknown[];
   };
 
-  // tagSuggestionsが欠けている・要素が空文字/非文字列/カンマ入りだった場合に備え、
+  // tagSuggestions/sourceQuoteが欠けている・想定外の型だった場合に備え、
   // 各要素まで正規化する(AIの生応答を信頼しすぎない、というAPI境界での正規化。
   // カンマはtags列のDB表現の区切り文字なので除外する。重複も除く)。
   const newNodes = (raw.newNodes ?? []).map((n) => ({
     ...n,
     tagSuggestions: normalizeTagSuggestions(n.tagSuggestions),
+    sourceQuote: typeof n.sourceQuote === "string" ? n.sourceQuote : "",
   })) as ExtractionResult["newNodes"];
 
   return {
