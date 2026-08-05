@@ -157,6 +157,9 @@ export function ReviewScreen({ extraction, onDone }: Props) {
                   ) : (
                     <p>{state.content}</p>
                   )}
+                  {state.decision !== "reject" && n.sourceQuote && (
+                    <p className="source-quote">元の発言: 「{n.sourceQuote}」</p>
+                  )}
                   {state.decision !== "reject" && n.tagSuggestions.length > 0 && (
                     <div className="tag-suggestions">
                       {n.tagSuggestions.map((tag) => (
