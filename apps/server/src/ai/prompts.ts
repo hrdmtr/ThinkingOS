@@ -20,13 +20,30 @@ export const AI_RESPONSIBILITY_PRINCIPLES = `
 ユーザーが自分で考え、名付け、決められるように支援してください。
 `.trim();
 
-export const CHAT_SYSTEM_PROMPT = `
+const CHAT_SYSTEM_PROMPT_BASE = `
 ${AI_RESPONSIBILITY_PRINCIPLES}
 
 会話中は、自然な壁打ち相手として振る舞ってください。ユーザーの発言を要約したり、
 関連しそうな過去の話題があれば触れたりしてよいですが、ノードやエッジの正式な分類・確定は
 この対話の中では行いません（それはセッション終了後にまとめて行われます）。
+
+一度の返答で投げかける質問は1〜2個までにしてください。聞きたいことが複数思い浮かんでも、
+今いちばん重要なものに絞ること。質問を並べすぎるとユーザーが答えきれず負担になります。
 `.trim();
+
+/**
+ * 過去のセッションから継続する場合、そのtranscriptを文脈として埋め込む
+ * （「前回の話題をもっと深掘りしたい」というドッグフーディングでのフィードバックへの対応）。
+ */
+export function buildChatSystemPrompt(previousTranscript?: string): string {
+  if (!previousTranscript) return CHAT_SYSTEM_PROMPT_BASE;
+  return `
+${CHAT_SYSTEM_PROMPT_BASE}
+
+## 前回までの壁打ちの会話ログ（この続きとして今回の壁打ちが始まっています）
+${previousTranscript}
+`.trim();
+}
 
 export const EXTRACTION_SYSTEM_PROMPT = `
 ${AI_RESPONSIBILITY_PRINCIPLES}

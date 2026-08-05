@@ -6,10 +6,11 @@ import { extractFromTranscript } from "../ai/extraction.js";
 import {
   createSession,
   endSession,
-  getTranscript,
+  getPreviousTranscript,
   insertConfirmedEdge,
   insertConfirmedNode,
   listRecentNodes,
+  listRecentSessions,
 } from "../db/repository.js";
 
 const ChatMessageSchema = z.object({
@@ -25,6 +26,10 @@ const EndSessionRequestSchema = z.object({
   transcript: z.string().min(1),
 });
 
+const CreateSessionRequestSchema = z.object({
+  continueFromSessionId: z.number().int().positive().optional(),
+});
+
 function summarizeExistingNodes(): string {
   const nodes = listRecentNodes(30);
   if (nodes.length === 0) return "";
@@ -34,9 +39,17 @@ function summarizeExistingNodes(): string {
 }
 
 export async function sessionRoutes(app: FastifyInstance): Promise<void> {
-  app.post("/api/sessions", async () => {
-    const sessionId = createSession();
+  app.post("/api/sessions", async (request) => {
+    const body = CreateSessionRequestSchema.parse(request.body ?? {});
+    const sessionId = createSession(body.continueFromSessionId);
     return { sessionId };
+  });
+
+  // 「前回の話題をもっと深掘りしたい」というドッグフーディングでのフィードバックへの対応。
+  // 継続元として選べる、終了済みセッションの一覧。
+  // 他の一覧系エンドポイント（/api/nodes/recent等）と合わせ、配列を直接返す。
+  app.get("/api/sessions/recent", async () => {
+    return listRecentSessions();
   });
 
   app.post("/api/sessions/:id/chat", async (request, reply) => {
@@ -44,6 +57,7 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
       request.params,
     );
     const body = ChatRequestSchema.parse(request.body);
+    const previousTranscript = getPreviousTranscript(params.id);
 
     reply.hijack();
     reply.raw.writeHead(200, {
@@ -53,9 +67,13 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     });
 
     try {
-      await streamChatReply(body.messages as ChatMessage[], (text) => {
-        reply.raw.write(text);
-      });
+      await streamChatReply(
+        body.messages as ChatMessage[],
+        (text) => {
+          reply.raw.write(text);
+        },
+        previousTranscript,
+      );
     } catch (err) {
       app.log.error({ err, sessionId: params.id }, "chat streaming failed");
       reply.raw.write("\n[エラー: 応答の取得に失敗しました]");

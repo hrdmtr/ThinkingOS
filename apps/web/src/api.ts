@@ -3,6 +3,7 @@ import type {
   ExtractionResult,
   Node,
   NodeType,
+  SessionSummary,
   Stats,
   SubmitReviewRequest,
   WeeklyStat,
@@ -16,8 +17,20 @@ async function json<T>(response: Response): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function createSession(): Promise<{ sessionId: number }> {
-  const res = await fetch("/api/sessions", { method: "POST" });
+export async function createSession(
+  continueFromSessionId?: number,
+): Promise<{ sessionId: number }> {
+  const res = await fetch("/api/sessions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ continueFromSessionId }),
+  });
+  return json(res);
+}
+
+/** 継続元として選べる、終了済みセッションの一覧。 */
+export async function fetchRecentSessions(): Promise<SessionSummary[]> {
+  const res = await fetch("/api/sessions/recent");
   return json(res);
 }
 

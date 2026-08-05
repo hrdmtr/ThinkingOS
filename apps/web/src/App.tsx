@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ExtractionResult, Stats } from "@thinking-os/shared";
+import type { ExtractionResult, SessionSummary, Stats } from "@thinking-os/shared";
 import { createSession, endSession, fetchStats } from "./api.js";
 import { ChatScreen } from "./components/ChatScreen.js";
 import { KnowledgeScreen } from "./components/KnowledgeScreen.js";
@@ -7,7 +7,7 @@ import { ReviewScreen } from "./components/ReviewScreen.js";
 
 type Screen =
   | { name: "knowledge" }
-  | { name: "chat"; sessionId: number }
+  | { name: "chat"; sessionId: number; continuedFrom?: SessionSummary }
   | { name: "review"; extraction: ExtractionResult };
 
 export function App() {
@@ -19,11 +19,11 @@ export function App() {
   // (画面遷移させない)、ローディング表示だけ出す。
   const [ending, setEnding] = useState(false);
 
-  async function handleStartSession() {
+  async function handleStartSession(continueFrom?: SessionSummary) {
     setError(null);
     try {
-      const { sessionId } = await createSession();
-      setScreen({ name: "chat", sessionId });
+      const { sessionId } = await createSession(continueFrom?.id);
+      setScreen({ name: "chat", sessionId, continuedFrom: continueFrom });
     } catch (err) {
       setError((err as Error).message);
     }
@@ -52,12 +52,17 @@ export function App() {
     <div className="app">
       {error && <p className="error">{error}</p>}
       {screen.name === "knowledge" && (
-        <KnowledgeScreen latestStats={latestStats} onStartSession={() => void handleStartSession()} />
+        <KnowledgeScreen
+          latestStats={latestStats}
+          onStartSession={() => void handleStartSession()}
+          onContinueSession={(session) => void handleStartSession(session)}
+        />
       )}
       {screen.name === "chat" && (
         <ChatScreen
           sessionId={screen.sessionId}
           ending={ending}
+          continuedFrom={screen.continuedFrom}
           onEndSession={(transcript) => void handleEndSession(screen.sessionId, transcript)}
         />
       )}

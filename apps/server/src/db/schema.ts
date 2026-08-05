@@ -6,11 +6,15 @@
  * 会話ログ全文で、抽出後も「聞き返し」機能の参照元として保持する）。
  */
 export const SCHEMA_SQL = `
+-- continued_from_session_idは「前回のセッションの話題を続けたい」という
+-- ドッグフーディングでのフィードバックへの対応。過去のどのセッションからでも
+-- 継続でき、継続元のtranscriptをAIチャットの文脈として渡すために使う。
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   started_at TEXT NOT NULL,
   ended_at TEXT,
-  transcript TEXT NOT NULL DEFAULT ''
+  transcript TEXT NOT NULL DEFAULT '',
+  continued_from_session_id INTEGER REFERENCES sessions(id)
 );
 
 -- typeの許容値はCHECK制約ではなくアプリ層のzod (NodeTypeSchema) だけで検証する。

@@ -139,3 +139,16 @@ export const WeeklyStatSchema = z.object({
   propositionCount: z.number().int().nonnegative(),
 });
 export type WeeklyStat = z.infer<typeof WeeklyStatSchema>;
+
+/**
+ * 終了済みセッションの一覧表示用。「前回の話題をもっと深掘りしたい」
+ * 「後で新たな気づきがあった」ときに、過去のどのセッションからでも壁打ちを
+ * 継続できるようにするための一覧（ドッグフーディングでのフィードバックへの対応）。
+ */
+export const SessionSummarySchema = z.object({
+  id: z.number().int().positive(),
+  startedAt: z.string(),
+  endedAt: z.string(),
+  transcript: z.string(),
+});
+export type SessionSummary = z.infer<typeof SessionSummarySchema>;

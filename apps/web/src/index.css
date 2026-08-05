@@ -76,6 +76,61 @@ body {
   margin-bottom: 1rem;
 }
 
+.session-list {
+  list-style: none;
+  padding: 0;
+}
+
+.session-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.session-preview {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.continue-session-button {
+  flex-shrink: 0;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid rgba(128, 128, 128, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.previous-session {
+  margin-bottom: 1rem;
+}
+
+.previous-session-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.08);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.previous-session-transcript {
+  white-space: pre-wrap;
+  color: #888;
+  font-size: 0.85rem;
+  padding: 0.5rem 0.75rem;
+  border-left: 2px solid rgba(128, 128, 128, 0.3);
+  margin-top: 0.25rem;
+}
+
 .ending-indicator {
   text-align: center;
   color: #3a6df0;
