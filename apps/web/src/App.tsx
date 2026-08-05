@@ -13,6 +13,9 @@ type Screen =
 export function App() {
   const [screen, setScreen] = useState<Screen>({ name: "knowledge" });
   const [latestStats, setLatestStats] = useState<Stats | null>(null);
+  // 壁打ち後の一覧でどれが今回追加されたものか分かりにくいというフィードバックへの対応。
+  // 直近確定したセッションのidを覚えておき、一覧側でこのセッション由来のノードに印を付ける。
+  const [latestSessionId, setLatestSessionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   // 「壁打ちを終える」から抽出結果が返るまでの間、無反応に見えて不安になるという
   // ドッグフーディングでのフィードバックへの対応。ChatScreenの会話状態は保ったまま
@@ -45,6 +48,7 @@ export function App() {
   async function handleReviewDone(sessionId: number) {
     const stats = await fetchStats(sessionId);
     setLatestStats(stats);
+    setLatestSessionId(sessionId);
     setScreen({ name: "knowledge" });
   }
 
@@ -54,6 +58,7 @@ export function App() {
       {screen.name === "knowledge" && (
         <KnowledgeScreen
           latestStats={latestStats}
+          latestSessionId={latestSessionId}
           onStartSession={() => void handleStartSession()}
           onContinueSession={(session) => void handleStartSession(session)}
         />
