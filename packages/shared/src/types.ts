@@ -44,6 +44,10 @@ export function hasInsightTag(tags: readonly string[]): boolean {
   return tags.includes(INSIGHT_TAG);
 }
 
+// タグはnodes.tagsにカンマ区切りで保持する(db/repository.ts参照)ため、
+// カンマを含むタグは表現できない。API境界でも拒否する。
+const TagSchema = z.string().min(1).regex(/^[^,]+$/, "タグにカンマは含められません");
+
 /** DBに永続化された確定済みノード。 */
 export const NodeSchema = z.object({
   id: z.number().int().positive(),
@@ -77,7 +81,7 @@ export const NodeCandidateSchema = z.object({
   type: NodeTypeSchema,
   content: z.string().min(1),
   // typeとは直交する「気づき」等のタグ候補。命題判定には一切影響しない。
-  tagSuggestions: z.array(z.string().min(1)).default([]),
+  tagSuggestions: z.array(TagSchema).default([]),
 });
 export type NodeCandidate = z.infer<typeof NodeCandidateSchema>;
 
@@ -116,7 +120,7 @@ export const NodeReviewSchema = z.object({
   decision: ReviewDecisionSchema,
   type: NodeTypeSchema.optional(),
   content: z.string().min(1).optional(),
-  tags: z.array(z.string().min(1)).optional(),
+  tags: z.array(TagSchema).optional(),
 });
 export type NodeReview = z.infer<typeof NodeReviewSchema>;
 

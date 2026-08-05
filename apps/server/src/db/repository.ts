@@ -8,7 +8,8 @@ import { getDb } from "./index.js";
  * 部分一致の誤検出(例: "気づき2"が"気づき"にマッチする等)を避けられる。
  */
 function tagsToDb(tags: readonly string[]): string {
-  return tags.length === 0 ? "" : `,${tags.join(",")},`;
+  const unique = [...new Set(tags)];
+  return unique.length === 0 ? "" : `,${unique.join(",")},`;
 }
 
 function tagsFromDb(raw: string): string[] {

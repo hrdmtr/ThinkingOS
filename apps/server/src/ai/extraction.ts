@@ -95,11 +95,12 @@ export async function extractFromTranscript(
     edgeCandidates?: unknown[];
   };
 
-  // tagSuggestionsが欠けていた場合に備え、空配列にフォールバックする
-  // (AIの生応答を信頼しすぎない、というAPI境界での正規化)。
+  // tagSuggestionsが欠けている・要素が空文字/非文字列/カンマ入りだった場合に備え、
+  // 各要素まで正規化する(AIの生応答を信頼しすぎない、というAPI境界での正規化。
+  // カンマはtags列のDB表現の区切り文字なので除外する。重複も除く)。
   const newNodes = (raw.newNodes ?? []).map((n) => ({
     ...n,
-    tagSuggestions: Array.isArray(n.tagSuggestions) ? n.tagSuggestions : [],
+    tagSuggestions: normalizeTagSuggestions(n.tagSuggestions),
   })) as ExtractionResult["newNodes"];
 
   return {
@@ -107,4 +108,13 @@ export async function extractFromTranscript(
     newNodes,
     edgeCandidates: (raw.edgeCandidates ?? []) as ExtractionResult["edgeCandidates"],
   };
+}
+
+function normalizeTagSuggestions(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const cleaned = value
+    .filter((t): t is string => typeof t === "string")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0 && !t.includes(","));
+  return [...new Set(cleaned)];
 }
