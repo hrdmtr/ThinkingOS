@@ -194,6 +194,17 @@ body {
   margin-right: 0.4rem;
 }
 
+.new-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: white;
+  background: #e0722f;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-right: 0.4rem;
+}
+
 .edge-endpoints {
   font-weight: bold;
 }

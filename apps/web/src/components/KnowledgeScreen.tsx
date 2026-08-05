@@ -11,6 +11,7 @@ import {
 
 type Props = {
   latestStats: Stats | null;
+  latestSessionId: number | null;
   onStartSession: () => void;
   onContinueSession: (session: SessionSummary) => void;
 };
@@ -24,6 +25,7 @@ function previewOf(transcript: string): string {
 
 type NodeItemProps = {
   node: Node;
+  isNew: boolean;
   onSaved: () => void;
 };
 
@@ -33,8 +35,11 @@ type NodeItemProps = {
  * 人間が自分の過去の確定判断を訂正する操作なので「AIは名付けをしない」原則には抵触しない。
  * 保存後はサーバーから最新の一覧を取り直す（ローカルでの手動マージはしない。
  * type変更で他の一覧への出入りが起きるため、その方が単純で確実）。
+ *
+ * isNewは「直前に確定した壁打ちセッションで生まれたノードか」を示す。一覧の中で
+ * 今回見るべきものが分かりにくいというフィードバックへの対応（NEWマーク表示）。
  */
-function NodeItem({ node, onSaved }: NodeItemProps) {
+function NodeItem({ node, isNew, onSaved }: NodeItemProps) {
   const [editing, setEditing] = useState(false);
   const [type, setType] = useState<NodeType>(node.type);
   const [content, setContent] = useState(node.content);
@@ -44,6 +49,7 @@ function NodeItem({ node, onSaved }: NodeItemProps) {
   if (!editing) {
     return (
       <li>
+        {isNew && <span className="new-badge">NEW</span>}
         <span className="node-type-badge">{node.type}</span> {node.content}{" "}
         <button className="edit-node-button" onClick={() => setEditing(true)}>
           編集
@@ -101,7 +107,12 @@ function NodeItem({ node, onSaved }: NodeItemProps) {
  * 「今日の問い」はAIによる問いかけ生成が必要でまだ未実装（docs/step5-build-plan.mdでは
  * バッチ抽出と合わせて後続で実装する想定）。
  */
-export function KnowledgeScreen({ latestStats, onStartSession, onContinueSession }: Props) {
+export function KnowledgeScreen({
+  latestStats,
+  latestSessionId,
+  onStartSession,
+  onContinueSession,
+}: Props) {
   const [recentNodes, setRecentNodes] = useState<Node[]>([]);
   const [unresolvedNodes, setUnresolvedNodes] = useState<Node[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStat[]>([]);
@@ -190,7 +201,12 @@ export function KnowledgeScreen({ latestStats, onStartSession, onContinueSession
             ) : (
               <ul>
                 {unresolvedNodes.map((n) => (
-                  <NodeItem key={n.id} node={n} onSaved={() => void reload()} />
+                  <NodeItem
+                    key={n.id}
+                    node={n}
+                    isNew={n.sessionId === latestSessionId}
+                    onSaved={() => void reload()}
+                  />
                 ))}
               </ul>
             )}
@@ -203,7 +219,12 @@ export function KnowledgeScreen({ latestStats, onStartSession, onContinueSession
             ) : (
               <ul>
                 {recentNodes.map((n) => (
-                  <NodeItem key={n.id} node={n} onSaved={() => void reload()} />
+                  <NodeItem
+                    key={n.id}
+                    node={n}
+                    isNew={n.sessionId === latestSessionId}
+                    onSaved={() => void reload()}
+                  />
                 ))}
               </ul>
             )}
@@ -216,7 +237,12 @@ export function KnowledgeScreen({ latestStats, onStartSession, onContinueSession
             ) : (
               <ul>
                 {ideaNodes.map((n) => (
-                  <NodeItem key={n.id} node={n} onSaved={() => void reload()} />
+                  <NodeItem
+                    key={n.id}
+                    node={n}
+                    isNew={n.sessionId === latestSessionId}
+                    onSaved={() => void reload()}
+                  />
                 ))}
               </ul>
             )}
