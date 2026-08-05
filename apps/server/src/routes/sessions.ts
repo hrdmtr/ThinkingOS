@@ -134,7 +134,7 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
           error: `nodeReview(tempId=${nodeReview.tempId})にtype/contentが必要です`,
         });
       }
-      const newId = insertConfirmedNode(type, content, params.id);
+      const newId = insertConfirmedNode(type, content, params.id, nodeReview.tags ?? []);
       confirmedNodeIds.set(nodeReview.tempId, newId);
     }
 

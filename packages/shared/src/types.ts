@@ -32,6 +32,18 @@ export function isPropositionType(type: NodeType): boolean {
   return (PROPOSITION_NODE_TYPES as readonly string[]).includes(type);
 }
 
+/**
+ * 「気づき」タグ。命題かどうか(type)とは直交する軸として、ノードに複数付けられる
+ * 自由記述タグの一種（PDMレビュー済み: typeを7分類に増やすのではなく、tagsという
+ * 別軸で表現する。「根拠」をtypeからエッジラベルへ移した時と同じ理由で、固定enumの
+ * 変更コストを避ける）。今のところAIが提案する値はこれのみだが、tags自体は自由記述。
+ */
+export const INSIGHT_TAG = "気づき";
+
+export function hasInsightTag(tags: readonly string[]): boolean {
+  return tags.includes(INSIGHT_TAG);
+}
+
 /** DBに永続化された確定済みノード。 */
 export const NodeSchema = z.object({
   id: z.number().int().positive(),
@@ -39,6 +51,7 @@ export const NodeSchema = z.object({
   content: z.string().min(1),
   createdAt: z.string(), // ISO8601
   sessionId: z.number().int().positive(),
+  tags: z.array(z.string().min(1)),
 });
 export type Node = z.infer<typeof NodeSchema>;
 
@@ -63,6 +76,8 @@ export const NodeCandidateSchema = z.object({
   tempId: z.string(),
   type: NodeTypeSchema,
   content: z.string().min(1),
+  // typeとは直交する「気づき」等のタグ候補。命題判定には一切影響しない。
+  tagSuggestions: z.array(z.string().min(1)).default([]),
 });
 export type NodeCandidate = z.infer<typeof NodeCandidateSchema>;
 
@@ -101,6 +116,7 @@ export const NodeReviewSchema = z.object({
   decision: ReviewDecisionSchema,
   type: NodeTypeSchema.optional(),
   content: z.string().min(1).optional(),
+  tags: z.array(z.string().min(1)).optional(),
 });
 export type NodeReview = z.infer<typeof NodeReviewSchema>;
 
@@ -121,11 +137,17 @@ export const SubmitReviewRequestSchema = z.object({
 });
 export type SubmitReviewRequest = z.infer<typeof SubmitReviewRequestSchema>;
 
-/** セッション単位・累計の統計。docs/step5-build-plan.md 5章。絶対統計のみで、他製品比の相対指標は持たない。 */
+/**
+ * セッション単位・累計の統計。docs/step5-build-plan.md 5章。絶対統計のみで、他製品比の相対指標は持たない。
+ * 気づき数(sessionInsightCount/cumulativeInsightCount)は命題数とは独立した参考情報であり、
+ * docs/step4-dogfooding.mdの撤退・継続基準には使わない(週次統計と同じ扱い。PDMレビュー済み)。
+ */
 export const StatsSchema = z.object({
   sessionPropositionCount: z.number().int().nonnegative(),
   cumulativePropositionCount: z.number().int().nonnegative(),
   cumulativeRelationCount: z.number().int().nonnegative(),
+  sessionInsightCount: z.number().int().nonnegative(),
+  cumulativeInsightCount: z.number().int().nonnegative(),
 });
 export type Stats = z.infer<typeof StatsSchema>;
 

@@ -20,12 +20,16 @@ CREATE TABLE IF NOT EXISTS sessions (
 -- typeの許容値はCHECK制約ではなくアプリ層のzod (NodeTypeSchema) だけで検証する。
 -- CHECK制約にすると、ノード分類の語彙を変更するたびにSQLiteのテーブル再作成が
 -- 必要になり移行コストが高い（実際に「根拠」→「事実」への変更で発生した問題）。
+-- tagsはtypeとは直交する「気づき」等の自由記述タグ（複数可）をカンマ区切りで保持する。
+-- 別テーブルに正規化しない軽量な設計（PDMレビュー: 気づきタグはtypeを増やすのではなく
+-- 別軸で表現する。今のところ検索・絞り込みの要件はないため文字列格納で十分）。
 CREATE TABLE IF NOT EXISTS nodes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL,
-  session_id INTEGER NOT NULL REFERENCES sessions(id)
+  session_id INTEGER NOT NULL REFERENCES sessions(id),
+  tags TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS edges (
