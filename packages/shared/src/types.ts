@@ -82,6 +82,11 @@ export const NodeCandidateSchema = z.object({
   content: z.string().min(1),
   // typeとは直交する「気づき」等のタグ候補。命題判定には一切影響しない。
   tagSuggestions: z.array(TagSchema).default([]),
+  // contentの根拠になった会話ログ中の該当箇所の引用。レビュー画面で元文脈と
+  // 照らし合わせて確認するための一時情報で、確定後はDBに保存しない
+  // （ノードは断片的な引用ではなく、それ単体で意味が通る文であるべきという
+  // 自己完結の原則への対応。docs参照: 未解決事項の断片化問題）。
+  sourceQuote: z.string().default(""),
 });
 export type NodeCandidate = z.infer<typeof NodeCandidateSchema>;
 
