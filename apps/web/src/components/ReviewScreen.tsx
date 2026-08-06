@@ -19,6 +19,9 @@ type NodeDecisionState = {
   decision: "confirm" | "edit" | "reject";
   type: NodeType;
   content: string;
+  // AIが提案したtagSuggestionsのうち、ユーザーが確定に含めると選んだもの
+  // (「気づき」等。typeとは直交する軸で、AIは提案までで人間が採否を決める)。
+  tags: string[];
 };
 
 type EdgeDecisionState = {
@@ -36,7 +39,7 @@ export function ReviewScreen({ extraction, onDone }: Props) {
     Object.fromEntries(
       extraction.newNodes.map((n) => [
         n.tempId,
-        { decision: "confirm" as const, type: n.type, content: n.content },
+        { decision: "confirm" as const, type: n.type, content: n.content, tags: n.tagSuggestions },
       ]),
     ),
   );
@@ -59,6 +62,15 @@ export function ReviewScreen({ extraction, onDone }: Props) {
 
   function updateNode(tempId: string, patch: Partial<NodeDecisionState>) {
     setNodeStates((prev) => ({ ...prev, [tempId]: { ...prev[tempId], ...patch } }));
+  }
+
+  function toggleTag(tempId: string, tag: string) {
+    setNodeStates((prev) => {
+      const current = prev[tempId];
+      const has = current.tags.includes(tag);
+      const tags = has ? current.tags.filter((t) => t !== tag) : [...current.tags, tag];
+      return { ...prev, [tempId]: { ...current, tags } };
+    });
   }
 
   function updateEdge(tempId: string, patch: Partial<EdgeDecisionState>) {
@@ -85,6 +97,7 @@ export function ReviewScreen({ extraction, onDone }: Props) {
           decision: state.decision,
           type: state.decision === "reject" ? undefined : state.type,
           content: state.decision === "reject" ? undefined : state.content,
+          tags: state.decision === "reject" ? undefined : state.tags,
         };
       });
 
@@ -143,6 +156,20 @@ export function ReviewScreen({ extraction, onDone }: Props) {
                     />
                   ) : (
                     <p>{state.content}</p>
+                  )}
+                  {state.decision !== "reject" && n.tagSuggestions.length > 0 && (
+                    <div className="tag-suggestions">
+                      {n.tagSuggestions.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`tag-chip ${state.tags.includes(tag) ? "active" : ""}`}
+                          onClick={() => toggleTag(n.tempId, tag)}
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
                   )}
                   <div className="review-actions">
                     <button

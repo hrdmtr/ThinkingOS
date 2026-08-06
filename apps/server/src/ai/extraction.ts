@@ -11,8 +11,13 @@ const nodeCandidateJsonSchema = {
     tempId: { type: "string" as const, description: "この候補内で一意な一時ID（例: n1, n2）" },
     type: { type: "string" as const, enum: NODE_TYPES as unknown as string[] },
     content: { type: "string" as const },
+    tagSuggestions: {
+      type: "array" as const,
+      items: { type: "string" as const },
+      description: "typeとは直交するタグ候補。「気づき」に該当する場合はそれを含める。該当しなければ空配列",
+    },
   },
-  required: ["tempId", "type", "content"],
+  required: ["tempId", "type", "content", "tagSuggestions"],
 };
 
 const edgeCandidateJsonSchema = {
@@ -86,13 +91,30 @@ export async function extractFromTranscript(
   }
 
   const raw = toolUseBlock.input as {
-    newNodes?: unknown[];
+    newNodes?: Array<Record<string, unknown>>;
     edgeCandidates?: unknown[];
   };
 
+  // tagSuggestionsが欠けている・要素が空文字/非文字列/カンマ入りだった場合に備え、
+  // 各要素まで正規化する(AIの生応答を信頼しすぎない、というAPI境界での正規化。
+  // カンマはtags列のDB表現の区切り文字なので除外する。重複も除く)。
+  const newNodes = (raw.newNodes ?? []).map((n) => ({
+    ...n,
+    tagSuggestions: normalizeTagSuggestions(n.tagSuggestions),
+  })) as ExtractionResult["newNodes"];
+
   return {
     sessionId,
-    newNodes: (raw.newNodes ?? []) as ExtractionResult["newNodes"],
+    newNodes,
     edgeCandidates: (raw.edgeCandidates ?? []) as ExtractionResult["edgeCandidates"],
   };
+}
+
+function normalizeTagSuggestions(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const cleaned = value
+    .filter((t): t is string => typeof t === "string")
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0 && !t.includes(","));
+  return [...new Set(cleaned)];
 }

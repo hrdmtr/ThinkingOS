@@ -113,7 +113,15 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
     const params = z.object({ id: z.coerce.number().int().positive() }).parse(
       request.params,
     );
-    const body = SubmitReviewRequestSchema.parse(request.body);
+    // AIの提案（tagSuggestions等、自由記述の配列を含む）をほぼそのまま含んだ内容が
+    // フロントエンド経由で送られてくるため、.parse()の例外を素通りさせず、
+    // 検証失敗時にユーザーに分かる400を返す（AIの出力揺れでレビュー確定全体が
+    // 500で落ちることを防ぐ）。
+    const parsedBody = SubmitReviewRequestSchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      return reply.status(400).send({ error: parsedBody.error.flatten() });
+    }
+    const body = parsedBody.data;
 
     if (body.sessionId !== params.id) {
       return reply.status(400).send({ error: "sessionIdがURLと一致しません" });
@@ -134,7 +142,7 @@ export async function sessionRoutes(app: FastifyInstance): Promise<void> {
           error: `nodeReview(tempId=${nodeReview.tempId})にtype/contentが必要です`,
         });
       }
-      const newId = insertConfirmedNode(type, content, params.id);
+      const newId = insertConfirmedNode(type, content, params.id, nodeReview.tags ?? []);
       confirmedNodeIds.set(nodeReview.tempId, newId);
     }
 

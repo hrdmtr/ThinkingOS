@@ -1,6 +1,20 @@
 import type { Edge, Node, NodeType, SessionSummary, Stats, WeeklyStat } from "@thinking-os/shared";
-import { PROPOSITION_NODE_TYPES } from "@thinking-os/shared";
+import { INSIGHT_TAG, PROPOSITION_NODE_TYPES } from "@thinking-os/shared";
 import { getDb } from "./index.js";
+
+/**
+ * tagsはnodes.tagsにカンマ区切り(前後にもカンマを付けた ",tag1,tag2," 形式)で保持する。
+ * 前後のカンマにより、SQL側で `tags LIKE '%,' || ? || ',%'` という単純なLIKEで
+ * 部分一致の誤検出(例: "気づき2"が"気づき"にマッチする等)を避けられる。
+ */
+function tagsToDb(tags: readonly string[]): string {
+  const unique = [...new Set(tags)];
+  return unique.length === 0 ? "" : `,${unique.join(",")},`;
+}
+
+function tagsFromDb(raw: string): string[] {
+  return raw.split(",").filter((t) => t.length > 0);
+}
 
 export function createSession(continuedFromSessionId?: number): number {
   const result = getDb()
@@ -71,12 +85,13 @@ export function insertConfirmedNode(
   type: NodeType,
   content: string,
   sessionId: number,
+  tags: readonly string[] = [],
 ): number {
   const result = getDb()
     .prepare(
-      "INSERT INTO nodes (type, content, created_at, session_id) VALUES (?, ?, ?, ?)",
+      "INSERT INTO nodes (type, content, created_at, session_id, tags) VALUES (?, ?, ?, ?, ?)",
     )
-    .run(type, content, new Date().toISOString(), sessionId);
+    .run(type, content, new Date().toISOString(), sessionId, tagsToDb(tags));
   return Number(result.lastInsertRowid);
 }
 
@@ -100,6 +115,7 @@ function rowToNode(row: {
   content: string;
   created_at: string;
   session_id: number;
+  tags: string;
 }): Node {
   return {
     id: row.id,
@@ -107,6 +123,7 @@ function rowToNode(row: {
     content: row.content,
     createdAt: row.created_at,
     sessionId: row.session_id,
+    tags: tagsFromDb(row.tags),
   };
 }
 
@@ -189,6 +206,7 @@ export function listRecentEdges(limit = 20): Edge[] {
  * セッション単位・累計の統計 (docs/step5-build-plan.md 5章)。
  * 「命題」はアイデア・仮説タイプのノードのみ (docs/step4-dogfooding.md)。
  * 他製品との相対比較はしない絶対統計であることに注意。
+ * 気づき数はtypeとは無関係な集計で、あくまで参考情報(docs/step4-dogfooding.md、PDMレビュー済み)。
  */
 export function getStats(sessionId: number): Stats {
   const propositionPlaceholders = PROPOSITION_NODE_TYPES.map(() => "?").join(", ");
@@ -209,10 +227,22 @@ export function getStats(sessionId: number): Stats {
     .prepare("SELECT COUNT(*) AS count FROM edges")
     .get() as { count: number };
 
+  const insightTagPattern = `%,${INSIGHT_TAG},%`;
+
+  const sessionInsightCount = getDb()
+    .prepare("SELECT COUNT(*) AS count FROM nodes WHERE session_id = ? AND tags LIKE ?")
+    .get(sessionId, insightTagPattern) as { count: number };
+
+  const cumulativeInsightCount = getDb()
+    .prepare("SELECT COUNT(*) AS count FROM nodes WHERE tags LIKE ?")
+    .get(insightTagPattern) as { count: number };
+
   return {
     sessionPropositionCount: sessionCount.count,
     cumulativePropositionCount: cumulativeCount.count,
     cumulativeRelationCount: relationCount.count,
+    sessionInsightCount: sessionInsightCount.count,
+    cumulativeInsightCount: cumulativeInsightCount.count,
   };
 }
 

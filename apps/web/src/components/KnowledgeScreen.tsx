@@ -50,7 +50,13 @@ function NodeItem({ node, isNew, onSaved }: NodeItemProps) {
     return (
       <li>
         {isNew && <span className="new-badge">NEW</span>}
-        <span className="node-type-badge">{node.type}</span> {node.content}{" "}
+        <span className="node-type-badge">{node.type}</span>
+        {node.tags.map((tag) => (
+          <span key={tag} className="node-tag-badge">
+            {tag}
+          </span>
+        ))}{" "}
+        {node.content}{" "}
         <button className="edit-node-button" onClick={() => setEditing(true)}>
           編集
         </button>
@@ -145,10 +151,17 @@ export function KnowledgeScreen({
 
       {latestStats && (
         <div className="stats-banner">
-          <p>今回の壁打ちで生まれた命題：{latestStats.sessionPropositionCount}件</p>
+          <p>
+            今回の壁打ちで生まれた命題：{latestStats.sessionPropositionCount}件、
+            気づき：{latestStats.sessionInsightCount}件
+          </p>
           <p>
             これまでに整理した命題：{latestStats.cumulativePropositionCount}件、
-            作成した関係：{latestStats.cumulativeRelationCount}件
+            作成した関係：{latestStats.cumulativeRelationCount}件、
+            気づき：{latestStats.cumulativeInsightCount}件
+          </p>
+          <p className="hint">
+            気づき数は参考情報です（撤退・継続の判断には使いません）。
           </p>
         </div>
       )}

@@ -66,6 +66,21 @@ function migrateSessionsTableIfNeeded(db: Database.Database): void {
   }
 }
 
+/**
+ * 既存のnodesテーブルにtagsカラムがなければ追加する。「気づき」タグ機能
+ * （PDMレビュー済み: typeを7分類に増やすのではなく直交する別軸で表現する）への対応。
+ * sessionsのcontinued_from_session_id追加と同じくALTER TABLE ADD COLUMNで足りる。
+ */
+function migrateNodesTagsColumnIfNeeded(db: Database.Database): void {
+  const columns = db.prepare("PRAGMA table_info(nodes)").all() as { name: string }[];
+  if (columns.length === 0) return; // テーブルが存在しない（新規）
+
+  const hasColumn = columns.some((c) => c.name === "tags");
+  if (!hasColumn) {
+    db.exec("ALTER TABLE nodes ADD COLUMN tags TEXT NOT NULL DEFAULT ''");
+  }
+}
+
 export function getDb(): Database.Database {
   if (db) return db;
 
@@ -77,6 +92,7 @@ export function getDb(): Database.Database {
   db.pragma("foreign_keys = ON");
   migrateNodesTableIfNeeded(db);
   migrateSessionsTableIfNeeded(db);
+  migrateNodesTagsColumnIfNeeded(db);
   db.exec(SCHEMA_SQL);
 
   return db;
